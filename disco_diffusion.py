@@ -106,15 +106,19 @@ def main():
     args.experiment_name = args.experiment_name if (args.resume_training) else datetime.now().strftime("%Y_%m_%d_%H_%M") + "_" + args.experiment_name    
     
     # Function to download models and pretrained
-    """
+    
     # Directories config
     args.root_path = os.path.join(os.getcwd(),args.experiment_name) if args.root_path == 'pwd' else os.path.join(args.root_path,args.experiment_name) 
     args.init_images_path = os.path.join(args.root_path, args.init_images_path)
     args.images_out_path = os.path.join(args.root_path, args.images_out_path)
     args.model_path = os.path.join(args.root_path, args.model_path)
+    args.pretrained_path = os.path.join(args.root_path, args.pretrained_path)
     os.makedirs(args.init_images_path, exist_ok=True)
     os.makedirs(args.images_out_path, exist_ok=True)
-    """
+    os.makedirs(args.model_path, exist_ok=True)
+    os.makedirs(args.pretrained_path, exist_ok=True)
+
+    # get models
     get_models(args)
 
     # Import devices
