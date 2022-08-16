@@ -1,7 +1,7 @@
 from typing import Tuple
 import warnings
 from math import ceil
-import interp_methods
+import ResizeRight.interp_methods as interp_methods
 from fractions import Fraction
 
 
