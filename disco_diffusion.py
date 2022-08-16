@@ -43,12 +43,10 @@ import sys
 sys.path.append('./AdaBins')
 sys.path.append('./CLIP')
 sys.path.append('./disco_difussion')
-sys.path.append('./guided_diffusion')
 sys.path.append('./MiDaS')
-sys.path.append('./ResizeRight')
 sys.path.append('./pytorch3d-lite') 
-from CLIP import clip
-from resize_right import resize
+from clip import clip
+from ResizeRight.resize_right import resize
 from guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults
 from AdaBins.infer import InferenceHelper
 
@@ -66,6 +64,7 @@ def parse_args():
     parser.add_argument('--init_images_path', type=str, default="init_images", help='Folder name for init images')
     parser.add_argument('--images_out_path', type=str, default="images_out", help='Folder name for images out')
     parser.add_argument('--model_path', type=str, default="models", help='Folder name for models')
+    parser.add_argument('--pretrained_path', type=str, default="pretrained", help='Folder name for pretrained')
     
     
     
@@ -107,7 +106,6 @@ def main():
     args.experiment_name = args.experiment_name if (args.resume_training) else datetime.now().strftime("%Y_%m_%d_%H_%M") + "_" + args.experiment_name    
     
     # Function to download models and pretrained
-    get_models(args)
     """
     # Directories config
     args.root_path = os.path.join(os.getcwd(),args.experiment_name) if args.root_path == 'pwd' else os.path.join(args.root_path,args.experiment_name) 
@@ -117,6 +115,7 @@ def main():
     os.makedirs(args.init_images_path, exist_ok=True)
     os.makedirs(args.images_out_path, exist_ok=True)
     """
+    get_models(args)
 
     # Import devices
     DEVICE = torch.device('cuda:0' if (torch.cuda.is_available()) else 'cpu')
