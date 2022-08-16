@@ -46,7 +46,6 @@ sys.path.append('./disco_difussion')
 sys.path.append('./MiDaS')
 sys.path.append('./pytorch3d-lite') 
 sys.path.append('./ResizeRight') 
-sys.path.append('./guided_diffusion') 
 
 from clip import clip
 from ResizeRight.resize_right import resize
