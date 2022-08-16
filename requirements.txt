@@ -68,7 +68,7 @@ pyDeprecate==0.3.2
 pyparsing==3.0.9
 python-dateutil==2.8.2
 pytorch-lightning==1.7.1
-pytorch3d==0.1.0
+pytorch3d==0.3.0
 pytz==2022.2
 PyYAML==6.0
 regex==2022.7.25
