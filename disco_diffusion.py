@@ -70,7 +70,7 @@ def parse_args():
     parser.add_argument('--pretrained_path', type=str, default="pretrained", help='Folder name for pretrained')
     
     # Model parameters
-    parser.add_argument('--midas_depth_model', type=str, default="dpt_large", help='Parameter to set MiDaS depth. Options: midas_v21_small, midas_v21, dpt_large, , dpt_hybrid_nyu')
+    parser.add_argument('--midas_model_type', type=str, default="dpt_large", help='Parameter to set MiDaS depth. Options: midas_v21_small, midas_v21, dpt_large, , dpt_hybrid_nyu')
 
 
 
