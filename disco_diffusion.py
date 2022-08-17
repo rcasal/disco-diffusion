@@ -129,6 +129,7 @@ def main():
             print('Disabling CUDNN for A100 gpu', file=sys.stderr)
         torch.backends.cudnn.enabled = False
 
+    print(args.midas_model_type)
     midas_model, midas_transform, midas_net_w, midas_net_h, midas_resize_mode, midas_normalization = init_midas_depth_model(args)
 
 
