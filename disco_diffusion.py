@@ -73,6 +73,7 @@ def parse_args():
     parser.add_argument('--RN101', type=str2bool, nargs='?', const=True, default=False, help="Use RN101. Options: False and True")
     parser.add_argument('--RN50', type=str2bool, nargs='?', const=True, default=True, help="Use RN50. Options: False and True")
     parser.add_argument('--RN50x4', type=str2bool, nargs='?', const=True, default=False, help="Use RN50x4. Options: False and True")
+    parser.add_argument('--RN50x16', type=str2bool, nargs='?', const=True, default=False, help="Use RN50x16. Options: False and True")
     parser.add_argument('--RN50x64', type=str2bool, nargs='?', const=True, default=False, help="Use RN50x64. Options: False and True")
     
     #If you're having issues with model downloads, check this to compare SHA's:
