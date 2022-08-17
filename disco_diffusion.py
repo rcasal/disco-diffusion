@@ -51,6 +51,7 @@ from clip import clip
 from ResizeRight.resize_right import resize
 from guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults
 from AdaBins.infer import InferenceHelper
+from midas_function import init_midas_depth_model
 
 
 MAX_ADABINS_AREA = 500000
@@ -68,14 +69,9 @@ def parse_args():
     parser.add_argument('--model_path', type=str, default="models", help='Folder name for models')
     parser.add_argument('--pretrained_path', type=str, default="pretrained", help='Folder name for pretrained')
     
-    
-    
-    parser.add_argument('--input_img_dir', type=str, default="02_output", help='Folder name for input images located in input_path_dir')
-    parser.add_argument('--output_img_dir', type=str, default="02_output", help='Folder name for output images located in input_path_dir')
-    parser.add_argument('--input_label_dir', type=str, default="--nodir--", help='Folder name for optional labeled images located in input_path_dir')        # 01_segmented_input
-    parser.add_argument('--input_inst_dir', type=str, default="01_segmented_input", help='Folder name for optional instances images located in input_path_dir') 
+    # Model parameters
+    parser.add_argument('--midas_depth_model', type=str, default="dpt_large", help='Parameter to set MiDaS depth. Options: midas_v21_small, midas_v21, dpt_large, , dpt_hybrid_nyu')
 
-    # Training parameters
 
 
     # Experiment parameters
@@ -126,14 +122,14 @@ def main():
     # Import devices
     DEVICE = torch.device('cuda:0' if (torch.cuda.is_available()) else 'cpu')
     print('Using device:', DEVICE)
-    device = DEVICE # At least one of the modules expects this name..
+    args.device = DEVICE # At least one of the modules expects this name..
 
-    if device=='cuda:0':
+    if args.device=='cuda:0':
         if torch.cuda.get_device_capability(DEVICE) == (8,0): ## A100 fix thanks to Emad
             print('Disabling CUDNN for A100 gpu', file=sys.stderr)
         torch.backends.cudnn.enabled = False
 
-
+    midas_model, midas_transform, midas_net_w, midas_net_h, midas_resize_mode, midas_normalization = init_midas_depth_model(args)
 
 
 
