@@ -1,32 +1,24 @@
 import argparse
 import os
-from utils.utils import str2bool, get_models
+from utils.utils import str2bool, get_models, download_models
 from datetime import datetime
 import torch
 from dataclasses import dataclass
 from functools import partial
 import cv2
 import pandas as pd
-import gc
-import io
-import math
 import timm
 import lpips
 from PIL import Image, ImageOps
 import requests
 from glob import glob
-import json
 from types import SimpleNamespace
 from torch import nn
 from torch.nn import functional as F
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
-from tqdm.notebook import tqdm
 from datetime import datetime
-import numpy as np
 import matplotlib.pyplot as plt
-import random
-import hashlib
 from functools import partial
 from numpy import asarray
 from einops import rearrange, repeat
@@ -35,9 +27,8 @@ import time
 from omegaconf import OmegaConf
 import warnings
 import sys
-# from IPython import display
-# from ipywidgets import Output
-# from IPython.display import Image as ipyimg
+# 
+# 
 
 # Add 3rd-party methods
 sys.path.append('./AdaBins')
@@ -47,11 +38,9 @@ sys.path.append('./MiDaS')
 sys.path.append('./pytorch3d-lite') 
 sys.path.append('./ResizeRight') 
 
-from clip import clip
 from ResizeRight.resize_right import resize
 from guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults
 from AdaBins.infer import InferenceHelper
-from midas_function import init_midas_depth_model
 
 
 MAX_ADABINS_AREA = 500000
@@ -72,6 +61,22 @@ def parse_args():
     # Model parameters
     parser.add_argument('--midas_model_type', type=str, default="dpt_large", help='Parameter to set MiDaS depth. Options: midas_v21_small, midas_v21, dpt_large, , dpt_hybrid_nyu')
 
+     # Diffusion and Clip Model Settings
+    parser.add_argument('--diffusion_model', type=str, default="512x512_diffusion_uncond_finetune_008100", help='Diffusion Model. Options: 256x256_diffusion_uncond, 512x512_diffusion_uncond_finetune_008100')
+    parser.add_argument('--use_secondary_model', type=str2bool, nargs='?', const=True, default=True, help="Use secondary model.")
+    parser.add_argument('--diffusion_sampling_mode', type=str, default='ddim', help='Diffusion Model. Options: plms,ddim')
+    parser.add_argument('--use_checkpoint', type=str2bool, nargs='?', const=True, default=True, help="Use checkpoint. Options: False and True")
+    parser.add_argument('--ViTB32', type=str2bool, nargs='?', const=True, default=True, help="Use ViTB32. Options: False and True")
+    parser.add_argument('--ViTB16', type=str2bool, nargs='?', const=True, default=True, help="Use ViTB16. Options: False and True")
+    parser.add_argument('--ViTL14', type=str2bool, nargs='?', const=True, default=True, help="Use ViTL14. Options: False and True")
+    parser.add_argument('--RN101', type=str2bool, nargs='?', const=True, default=False, help="Use RN101. Options: False and True")
+    parser.add_argument('--RN50', type=str2bool, nargs='?', const=True, default=True, help="Use RN50. Options: False and True")
+    parser.add_argument('--RN50x4', type=str2bool, nargs='?', const=True, default=False, help="Use RN50x4. Options: False and True")
+    parser.add_argument('--RN50x64', type=str2bool, nargs='?', const=True, default=False, help="Use RN50x64. Options: False and True")
+    
+    #If you're having issues with model downloads, check this to compare SHA's:
+    parser.add_argument('--check_model_SHA', type=str2bool, nargs='?', const=True, default=False, help="Use check_model_SHA. Options: False and True")
+
 
 
     # Experiment parameters
@@ -86,10 +91,6 @@ def parse_args():
     parser.add_argument('--warnings', type=str2bool, nargs='?', const=False, default=True, help="Show warnings")
 
 
-    """ 
-    
-    parser.add_argument('--notes', type=str, default="N/A", help='A description of the experiment')
-    """
     return parser.parse_args()
 
 
@@ -102,8 +103,6 @@ def main():
 
     # Resume training and experiment name
     args.experiment_name = args.experiment_name if (args.resume_training) else datetime.now().strftime("%Y_%m_%d_%H_%M") + "_" + args.experiment_name    
-    
-    # Function to download models and pretrained
     
     # Directories config
     args.root_path = os.path.join(os.getcwd(),args.experiment_name) if args.root_path == 'pwd' else os.path.join(args.root_path,args.experiment_name) 
@@ -129,11 +128,70 @@ def main():
             print('Disabling CUDNN for A100 gpu', file=sys.stderr)
         torch.backends.cudnn.enabled = False
 
-    print(args.midas_model_type)
-    midas_model, midas_transform, midas_net_w, midas_net_h, midas_resize_mode, midas_normalization = init_midas_depth_model(args)
+    download_models(args)
 
 
 
+
+    # model_config = model_and_diffusion_defaults()
+    # if diffusion_model == '512x512_diffusion_uncond_finetune_008100':
+    #     model_config.update({
+    #         'attention_resolutions': '32, 16, 8',
+    #         'class_cond': False,
+    #         'diffusion_steps': 1000, #No need to edit this, it is taken care of later.
+    #         'rescale_timesteps': True,
+    #         'timestep_respacing': 250, #No need to edit this, it is taken care of later.
+    #         'image_size': 512,
+    #         'learn_sigma': True,
+    #         'noise_schedule': 'linear',
+    #         'num_channels': 256,
+    #         'num_head_channels': 64,
+    #         'num_res_blocks': 2,
+    #         'resblock_updown': True,
+    #         'use_checkpoint': use_checkpoint,
+    #         'use_fp16': not useCPU,
+    #         'use_scale_shift_norm': True,
+    #     })
+    # elif diffusion_model == '256x256_diffusion_uncond':
+    #     model_config.update({
+    #         'attention_resolutions': '32, 16, 8',
+    #         'class_cond': False,
+    #         'diffusion_steps': 1000, #No need to edit this, it is taken care of later.
+    #         'rescale_timesteps': True,
+    #         'timestep_respacing': 250, #No need to edit this, it is taken care of later.
+    #         'image_size': 256,
+    #         'learn_sigma': True,
+    #         'noise_schedule': 'linear',
+    #         'num_channels': 256,
+    #         'num_head_channels': 64,
+    #         'num_res_blocks': 2,
+    #         'resblock_updown': True,
+    #         'use_checkpoint': use_checkpoint,
+    #         'use_fp16': not useCPU,
+    #         'use_scale_shift_norm': True,
+    #     })
+
+    # model_default = model_config['image_size']
+
+
+
+    # if use_secondary_model:
+    #     secondary_model = SecondaryDiffusionImageNet2()
+    #     secondary_model.load_state_dict(torch.load(f'{model_path}/secondary_model_imagenet_2.pth', map_location='cpu'))
+    #     secondary_model.eval().requires_grad_(False).to(device)
+
+    # clip_models = []
+    # if ViTB32 is True: clip_models.append(clip.load('ViT-B/32', jit=False)[0].eval().requires_grad_(False).to(device)) 
+    # if ViTB16 is True: clip_models.append(clip.load('ViT-B/16', jit=False)[0].eval().requires_grad_(False).to(device) ) 
+    # if ViTL14 is True: clip_models.append(clip.load('ViT-L/14', jit=False)[0].eval().requires_grad_(False).to(device) ) 
+    # if RN50 is True: clip_models.append(clip.load('RN50', jit=False)[0].eval().requires_grad_(False).to(device))
+    # if RN50x4 is True: clip_models.append(clip.load('RN50x4', jit=False)[0].eval().requires_grad_(False).to(device)) 
+    # if RN50x16 is True: clip_models.append(clip.load('RN50x16', jit=False)[0].eval().requires_grad_(False).to(device)) 
+    # if RN50x64 is True: clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(device)) 
+    # if RN101 is True: clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(device)) 
+
+    # normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+    # lpips_model = lpips.LPIPS(net='vgg').to(device)
         
 
 
