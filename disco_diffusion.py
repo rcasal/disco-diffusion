@@ -43,6 +43,7 @@ import sys
 sys.path.append('./AdaBins')
 sys.path.append('./CLIP')
 sys.path.append('./disco_difussion')
+sys.path.append('./guided_diffusion')
 sys.path.append('./MiDaS')
 sys.path.append('./pytorch3d-lite') 
 sys.path.append('./ResizeRight') 
