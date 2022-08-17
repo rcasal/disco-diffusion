@@ -41,7 +41,6 @@ import sys
 
 # Add 3rd-party methods
 sys.path.append('./AdaBins')
-sys.path.append('./CLIP')
 sys.path.append('./disco_difussion')
 sys.path.append('./guided_diffusion')
 sys.path.append('./MiDaS')
