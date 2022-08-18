@@ -302,7 +302,7 @@ def main():
 
         
     #Get corrected sizes
-    args.width_height [args.width, args.heigth]
+    args.width_height = [args.width, args.heigth]
     args.side_x = (args.width//64)*64;
     args.side_y = (args.heigth//64)*64;
     if args.side_x != args.width or args.side_y != args.heigth:
