@@ -223,7 +223,7 @@ def main():
     os.makedirs(args.images_out_path, exist_ok=True)
     os.makedirs(args.model_path, exist_ok=True)
     os.makedirs(args.pretrained_path, exist_ok=True)
-    args.batch_folder_path = os.path.join(args.images_out_path, args.batch_name)
+    args.batchFolder = os.path.join(args.images_out_path, args.batch_name)
     os.makedirs(args.batch_folder_path, exist_ok=True)
 
     args.video_init_path = os.path.join(args.root_path, args.video_name)
@@ -315,7 +315,7 @@ def main():
         'timestep_respacing': timestep_respacing,
         'diffusion_steps': diffusion_steps,
         })
-
+    
     # Animation Mode
     if args.animation_mode == "Video Input":
         os.makedirs(os.path.join(args.root_path, args.videoFramesFolder), exist_ok=True)
