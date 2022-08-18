@@ -224,7 +224,7 @@ def main():
     os.makedirs(args.model_path, exist_ok=True)
     os.makedirs(args.pretrained_path, exist_ok=True)
     args.batchFolder = os.path.join(args.images_out_path, args.batch_name)
-    os.makedirs(args.batch_folder_path, exist_ok=True)
+    os.makedirs(args.batchFolder, exist_ok=True)
 
     args.video_init_path = os.path.join(args.root_path, args.video_name)
 
