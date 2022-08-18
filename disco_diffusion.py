@@ -512,8 +512,8 @@ def main():
 
     def move_files(start_num, end_num, old_folder, new_folder):
         for i in range(start_num, end_num):
-            old_file = old_folder + f'/{args.batch_name}({batchNum})_{i:04}.png'
-            new_file = new_folder + f'/{args.batch_name}({batchNum})_{i:04}.png'
+            old_file = old_folder + f'/{args.batch_name}({args.batchNum})_{i:04}.png'
+            new_file = new_folder + f'/{args.batch_name}({args.batchNum})_{i:04}.png'
             os.rename(old_file, new_file)
 
     if args.retain_overwritten_frames is True:
@@ -534,7 +534,7 @@ def main():
             except:
                 args.batchNum = len(glob(f"{args.batchFolder}/{args.batch_name}(*)_settings.txt"))-1
         else:
-            batchNum = int(args.run_to_resume)
+            args.batchNum = int(args.run_to_resume)
         if args.resume_from_frame == 'latest':
             args.start_frame = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
             if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
@@ -551,7 +551,7 @@ def main():
     else:
         args.start_frame = 0
         args.batchNum = len(glob(args.batchFolder+"/*.txt"))
-        while os.path.isfile(f"{args.batchFolder}/{args.batch_name}({batchNum})_settings.txt") is True or os.path.isfile(f"{args.batchFolder}/{args.batch_name}-{batchNum}_settings.txt") is True:
+        while os.path.isfile(f"{args.batchFolder}/{args.batch_name}({args.batchNum})_settings.txt") is True or os.path.isfile(f"{args.batchFolder}/{args.batch_name}-{args.batchNum}_settings.txt") is True:
             args.batchNum += 1
 
     print(f'Starting Run: {args.batch_name}({args.batchNum}) at frame {args.start_frame}')
@@ -565,7 +565,7 @@ def main():
         args.seed = int(args.set_seed)
 
     args_m = {
-        'batchNum': batchNum,
+        'batchNum': args.batchNum,
         'prompts_series':split_prompts(args.text_prompts) if args.text_prompts else None,
         'image_prompts_series':split_prompts(args.image_prompts) if args.image_prompts else None,
         'seed': args.seed,
