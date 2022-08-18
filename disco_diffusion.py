@@ -9,7 +9,6 @@ import cv2
 import pandas as pd
 import timm
 import gc
-import lpips
 import shutil
 from PIL import Image, ImageOps
 import requests
@@ -182,7 +181,6 @@ def parse_args():
     parser.add_argument('--display_rate', type=int, default=50, help='Display Rate') 
     parser.add_argument('--n_batches', type=int, default=1, help='n_batches. It is ignored with animation modes.') 
     parser.add_argument('--resume_run', type=str2bool, nargs='?', const=True, default=False, help="Resume run.")
-    parser.add_argument('--resume_run', type=str2bool, nargs='?', const=True, default=False, help="Resume run.")
     parser.add_argument('--run_to_resume', type=str, default="latest", help="Run to resume.") 
     parser.add_argument('--resume_from_frame', type=str, default="latest", help="Resume from frame.") 
     parser.add_argument('--retain_overwritten_frames', type=str2bool, nargs='?', const=True, default=True, help="Retain overwritten frames.")
@@ -302,7 +300,6 @@ def main():
     if args.RN50x64 is True: clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
     if args.RN101 is True: clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
 
-    lpips_model = lpips.LPIPS(net='vgg').to(args.device)
         
     #Get corrected sizes
     args.width_height [args.width, args.heigth]
