@@ -1,6 +1,6 @@
 import argparse
 import os
-from utils.utils import str2bool, get_models, download_models
+from utils.utils import str2bool, get_models, download_models, do_run
 from datetime import datetime
 import torch
 from dataclasses import dataclass
@@ -8,7 +8,9 @@ from functools import partial
 import cv2
 import pandas as pd
 import timm
+import gc
 import lpips
+import shutil
 from PIL import Image, ImageOps
 import requests
 from glob import glob
@@ -22,15 +24,21 @@ import matplotlib.pyplot as plt
 from functools import partial
 from numpy import asarray
 from einops import rearrange, repeat
+from tqdm.notebook import tqdm
 import torchvision
 import time
+import numpy as np
 from omegaconf import OmegaConf
+from midas_function import init_midas_depth_model
 import warnings
 import sys
 import pathlib
 import subprocess
-# 
-# 
+import disco_xform_utils as dxf
+import math
+import random
+import io
+import pytorch3d_lite.py3d_tools as p3dT
 
 # Add 3rd-party methods
 sys.path.append('./AdaBins')
@@ -137,6 +145,48 @@ def parse_args():
     parser.add_argument('--vr_mode', type=str2bool, nargs='?', const=True, default=False, help="VR mode. Options: False and True. By default is False. Enables stereo rendering of left/right eye views (supporting Turbo) which use a different (fish-eye) camera projection matrix. Note the images you're prompting will work better if they have some inherent wide-angle aspect The generated images will need to be combined into left/right videos. These can then be stitched into the VR180 format. Google made the VR180 Creator tool but subsequently stopped supporting it. It's available for download in a few places including https://www.patrickgrunwald.de/vr180-creator-download The tool is not only good for stitching (videos and photos) but also for adding the correct metadata into existing videos, which is needed for services like YouTube to identify the format correctly. Watching YouTube VR videos isn't necessarily the easiest depending on your headset. For instance Oculus have a dedicated media studio and store which makes the files easier to access on a Quest https://creator.oculus.com/manage/mediastudio/. The command to get ffmpeg to concat your frames for each eye is in the form: ffmpeg -framerate 15 -i frame_%4d_l.png l.mp4 (repeat for r).")
     parser.add_argument('--vr_eye_angle', type=float, default=0.5, help='Vr eye angle` is the y-axis rotation of the eyes towards the center.') 
     parser.add_argument('--vr_ipd', type=float, default=5.0, help='Interpupillary distance (between the eyes).') 
+
+    # Extra Settings
+    # Saving
+    parser.add_argument('--intermediate_saves', type=int, default=100, help='Intermediate saves. Intermediate steps will save a copy at your specified intervals. You can either format it as a single integer or a list of specific steps. A value of 2 will save a copy at 33% and 66%. 0 will save none. A value of [5, 9, 34, 45] will save at steps 5, 9, 34, and 45. (Make sure to include the brackets') 
+    parser.add_argument('--intermediates_in_subfolder', type=str2bool, nargs='?', const=True, default=True, help="Intermediates in subfolder. Options: False and True. By default is True.")
+
+    # Advanced Settings
+    parser.add_argument('--perlin_init', type=str2bool, nargs='?', const=True, default=False, help="Perlin Init. Options: False and True. By default is False. Perlin init will replace your init, so uncheck if using one.")
+    parser.add_argument('--perlin_mode', type=str, default='mixed', help="Perlin Mode. Options: 'mixed', 'color', 'gray'.") 
+    parser.add_argument('--set_seed', type=str, default='random_seed', help="Set seed.") 
+    parser.add_argument('--eta', type=float, default=0.8, help='Eta.') 
+    parser.add_argument('--clamp_grad', type=str2bool, nargs='?', const=True, default=True, help="Clamp grad.")
+    parser.add_argument('--clamp_max', type=float, default=0.05, help='Camp max.') 
+
+    # Extra advanced Settings
+    parser.add_argument('--randomize_class', type=str2bool, nargs='?', const=True, default=True, help="Randomize class.")
+    parser.add_argument('--clip_denoised', type=str2bool, nargs='?', const=True, default=False, help="Clip denoised.")
+    parser.add_argument('--fuzzy_prompt', type=str2bool, nargs='?', const=False, default=True, help="Fuzzy prompt.")
+    parser.add_argument('--rand_mag', type=float, default=0.05, help='Camp max.') 
+
+    # Cutn Scheduling
+    parser.add_argument('--cut_overview', type=str, default="[12]*400+[4]*600", help="cut_overview and cut_innercut are cumulative for total cutn on any given step. Overview cuts see the entire image and are good for early structure, innercuts are your standard cutn.") 
+    parser.add_argument('--cut_innercut', type=str, default="[4]*400+[12]*600", help="cut_overview and cut_innercut are cumulative for total cutn on any given step. Overview cuts see the entire image and are good for early structure, innercuts are your standard cutn.") 
+    parser.add_argument('--cut_ic_pow', type=float, default=1, help='Cut_ic_pow.') 
+    parser.add_argument('--cut_icgray_p', type=str, default="[0.2]*400+[0]*600", help="cut_icgray_p") 
+
+    # Prompts
+    parser.add_argument('--text_prompts', type=str, default="A picture of a small tokyo alley way in the style of black and white manga, gray scale.", help="Text prompt") 
+    parser.add_argument('--text_prompts_100_0', type=str, default="This set of prompts start at frame 100", help="Text prompt_100_0") 
+    parser.add_argument('--text_prompts_100_1', type=str, default="This prompt has weight five:5", help="Text prompt_100_1") 
+
+    parser.add_argument('--image_prompts', type=str, default="None", help="Image Prompts") 
+
+    # Do the run!
+    parser.add_argument('--display_rate', type=int, default=50, help='Display Rate') 
+    parser.add_argument('--n_batches', type=int, default=1, help='n_batches. It is ignored with animation modes.') 
+    parser.add_argument('--resume_run', type=str2bool, nargs='?', const=True, default=False, help="Resume run.")
+    parser.add_argument('--resume_run', type=str2bool, nargs='?', const=True, default=False, help="Resume run.")
+    parser.add_argument('--run_to_resume', type=str, default="latest", help="Run to resume.") 
+    parser.add_argument('--resume_from_frame', type=str, default="latest", help="Resume from frame.") 
+    parser.add_argument('--retain_overwritten_frames', type=str2bool, nargs='?', const=True, default=True, help="Retain overwritten frames.")
+
 
 
 
@@ -252,10 +302,10 @@ def main():
     if args.RN50x64 is True: clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
     if args.RN101 is True: clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
 
-    normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
     lpips_model = lpips.LPIPS(net='vgg').to(args.device)
         
     #Get corrected sizes
+    args.width_height [args.width, args.heigth]
     args.side_x = (args.width//64)*64;
     args.side_y = (args.heigth//64)*64;
     if args.side_x != args.width or args.side_y != args.heigth:
@@ -424,21 +474,202 @@ def main():
         args.rotation_3d_y = 0
         args.rotation_3d_z = 0
 
-    print('End')
-    print(args.angle)
-    print(args.rotation_3d_x)
-    print(args.zoom)
+    # Saving
+    if type(args.intermediate_saves) is not list:
+        if args.intermediate_saves:
+            steps_per_checkpoint = math.floor((args.steps - args.skip_steps - 1) // (args.intermediate_saves+1))
+            steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
+            print(f'Will save every {steps_per_checkpoint} steps')
+        else:
+            steps_per_checkpoint = args.steps+10
+    else:
+        steps_per_checkpoint = None
+
+    if args.intermediate_saves and args.intermediates_in_subfolder is True:
+        args.partialFolder = f'{args.batchFolder}/partials'
+        os.makedirs(args.partialFolder, exist_ok=True)
+
+    # Prompt
+    args.text_prompts = {
+        0: [args.text_prompts],
+        100: [args.text_prompts_100_0, args.text_prompts_100_1],
+    }
+
+    if args.image_prompts is "None":
+        args.image_prompts = {}
+    else:
+        args.image_prompts = {
+            args.image_prompts,
+        }
 
 
-    # # Multiprocessing
-    # args.world_size = args.gpus * args.nodes
-    # os.environ['MASTER_ADDR'] = 'localhost'
-    # os.environ['MASTER_PORT'] = '8888'
-    # mp.spawn(train_networks, nprocs=args.gpus, args=(args,))   
-    
-    # #train_networks(args)
+    # Do the run!!
+    #Update Model Settings
+    timestep_respacing = f'ddim{args.steps}'
+    diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
+    model_config.update({
+        'timestep_respacing': timestep_respacing,
+        'diffusion_steps': diffusion_steps,
+    })
+    args.batch_size = 1 
+
+    def move_files(start_num, end_num, old_folder, new_folder):
+        for i in range(start_num, end_num):
+            old_file = old_folder + f'/{args.batch_name}({batchNum})_{i:04}.png'
+            new_file = new_folder + f'/{args.batch_name}({batchNum})_{i:04}.png'
+            os.rename(old_file, new_file)
+
+    if args.retain_overwritten_frames is True:
+        args.retainFolder = f'{args.batchFolder}/retained'
+        os.makedirs(args.retainFolder, exist_ok=True)
 
 
+    args.skip_step_ratio = int(args.frames_skip_steps.rstrip("%")) / 100
+    args.calc_frames_skip_steps = math.floor(args.steps * args.skip_step_ratio)
+
+    if args.steps <= args.calc_frames_skip_steps:
+        sys.exit("ERROR: You can't skip more steps than your total steps")
+
+    if args.resume_run:
+        if args.run_to_resume == 'latest':
+            try:
+                args.batchNum
+            except:
+                args.batchNum = len(glob(f"{args.batchFolder}/{args.batch_name}(*)_settings.txt"))-1
+        else:
+            batchNum = int(args.run_to_resume)
+        if args.resume_from_frame == 'latest':
+            args.start_frame = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
+            if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
+                args.start_frame = args.start_frame - (args.start_frame % int(args.turbo_steps))
+        else:
+            args.start_frame = int(args.resume_from_frame)+1
+            if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
+                args.start_frame = args.start_frame - (args.start_frame % int(args.turbo_steps))
+            if args.retain_overwritten_frames is True:
+                args.existing_frames = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
+            args.frames_to_save = args.existing_frames - args.start_frame
+            print(f'Moving {args.frames_to_save} frames to the Retained folder')
+            move_files(args.start_frame, args.existing_frames, args.batchFolder, args.retainFolder)
+    else:
+        args.start_frame = 0
+        args.batchNum = len(glob(args.batchFolder+"/*.txt"))
+        while os.path.isfile(f"{args.batchFolder}/{args.batch_name}({batchNum})_settings.txt") is True or os.path.isfile(f"{args.batchFolder}/{args.batch_name}-{batchNum}_settings.txt") is True:
+            args.batchNum += 1
+
+    print(f'Starting Run: {args.batch_name}({args.batchNum}) at frame {args.start_frame}')
+
+
+    if args.set_seed == 'random_seed':
+        random.seed()
+        args.seed = random.randint(0, 2**32)
+        # print(f'Using seed: {seed}')
+    else:
+        args.seed = int(args.set_seed)
+
+    args_m = {
+        'batchNum': batchNum,
+        'prompts_series':split_prompts(args.text_prompts) if args.text_prompts else None,
+        'image_prompts_series':split_prompts(args.image_prompts) if args.image_prompts else None,
+        'seed': args.seed,
+        'display_rate':args.display_rate,
+        'n_batches':args.n_batches if args.animation_mode == 'None' else 1,
+        'batch_size':args.batch_size,
+        'batch_name': args.batch_name,
+        'steps': args.steps,
+        'diffusion_sampling_mode': args.diffusion_sampling_mode,
+        'width_height': args.width_height,
+        'clip_guidance_scale': args.clip_guidance_scale,
+        'tv_scale': args.tv_scale,
+        'range_scale': args.range_scale,
+        'sat_scale': args.sat_scale,
+        'cutn_batches': args.cutn_batches,
+        'init_image': args.init_image,
+        'init_scale': args.init_scale,
+        'skip_steps': args.skip_steps,
+        'side_x': args.side_x,
+        'side_y': args.side_y,
+        'timestep_respacing': args.timestep_respacing,
+        'diffusion_steps': args.diffusion_steps,
+        'animation_mode': args.animation_mode,
+        'video_init_path': args.video_init_path,
+        'extract_nth_frame': args.extract_nth_frame,
+        'video_init_seed_continuity': args.video_init_seed_continuity,
+        'key_frames': args.key_frames,
+        'max_frames': args.max_frames if args.animation_mode != "None" else 1,
+        'interp_spline': args.interp_spline,
+        'start_frame': args.start_frame,
+        'angle': args.angle,
+        'zoom': args.zoom,
+        'translation_x': args.translation_x,
+        'translation_y': args.translation_y,
+        'translation_z': args.translation_z,
+        'rotation_3d_x': args.rotation_3d_x,
+        'rotation_3d_y': args.rotation_3d_y,
+        'rotation_3d_z': args.rotation_3d_z,
+        'midas_depth_model': args.midas_depth_model,
+        'midas_weight': args.midas_weight,
+        'near_plane': args.near_plane,
+        'far_plane': args.far_plane,
+        'fov': args.fov,
+        'padding_mode': args.padding_mode,
+        'sampling_mode': args.sampling_mode,
+        'angle_series':None,
+        'zoom_series':None,
+        'translation_x_series':None,
+        'translation_y_series':None,
+        'translation_z_series':None,
+        'rotation_3d_x_series':None,
+        'rotation_3d_y_series':None,
+        'rotation_3d_z_series':None,
+        'frames_scale': args.frames_scale,
+        'calc_frames_skip_steps': args.calc_frames_skip_steps,
+        'skip_step_ratio': args.skip_step_ratio,
+        'calc_frames_skip_steps': args.calc_frames_skip_steps,
+        'text_prompts': args.text_prompts,
+        'image_prompts': args.image_prompts,
+        'cut_overview': eval(args.cut_overview),
+        'cut_innercut': eval(args.cut_innercut),
+        'cut_ic_pow': args.cut_ic_pow,
+        'cut_icgray_p': eval(args.cut_icgray_p),
+        'intermediate_saves': args.intermediate_saves,
+        'intermediates_in_subfolder': args.intermediates_in_subfolder,
+        'steps_per_checkpoint': steps_per_checkpoint,
+        'perlin_init': args.perlin_init,
+        'perlin_mode': args.perlin_mode,
+        'set_seed': args.set_seed,
+        'eta': args.eta,
+        'clamp_grad': args.clamp_grad,
+        'clamp_max': args.clamp_max,
+        'skip_augs': args.skip_augs,
+        'randomize_class': args.randomize_class,
+        'clip_denoised': args.clip_denoised,
+        'fuzzy_prompt': args.fuzzy_prompt,
+        'rand_mag': args.rand_mag,
+    }
+
+    args = SimpleNamespace(**args_m)
+
+    print('Prepping model...')
+    model, diffusion = create_model_and_diffusion(**model_config)
+    model.load_state_dict(torch.load(f'{args.model_path}/{args.diffusion_model}.pt', map_location='cpu'))
+    model.requires_grad_(False).eval().to(args.device)
+    for name, param in model.named_parameters():
+        if 'qkv' in name or 'norm' in name or 'proj' in name:
+            param.requires_grad_()
+    if model_config['use_fp16']:
+        model.convert_to_fp16()
+
+    gc.collect()
+    torch.cuda.empty_cache()
+    try:
+        do_run(model, diffusion, secondary_model, args_m, args)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print('Seed used:', args.seed)
+        gc.collect()
+        torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':
