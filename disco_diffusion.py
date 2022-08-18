@@ -209,9 +209,9 @@ def main():
     lpips_model = lpips.LPIPS(net='vgg').to(args.device)
         
     #Get corrected sizes
-    args.side_x = (args.width_height[0]//64)*64;
-    args.side_y = (args.width_height[1]//64)*64;
-    if args.side_x != args.width_height[0] or args.side_y != args.width_height[1]:
+    args.side_x = (args.width//64)*64;
+    args.side_y = (args.height//64)*64;
+    if args.side_x != args.width or args.side_y != args.height:
         print(f'Changing output size to {args.side_x}x{args.side_y}. Dimensions must by multiples of 64.')
 
     #Update Model Settings
