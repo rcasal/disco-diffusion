@@ -79,7 +79,21 @@ def parse_args():
     #If you're having issues with model downloads, check this to compare SHA's:
     parser.add_argument('--check_model_SHA', type=str2bool, nargs='?', const=True, default=False, help="Use check_model_SHA. Options: False and True")
 
-
+    # Settings
+    ####**Basic Settings:**
+    parser.add_argument('--batch_name', type=str, default="bg", help='Batch_name.')
+    parser.add_argument('--steps', type=int, default=250, help='Number of steps. Eg. 25,50,100,150,250,500,1000')
+    parser.add_argument('--width', type=int, default=1280, help='Image width. Eg. 1280')
+    parser.add_argument('--heigth', type=int, default=768, help='Image width. Eg. 768')
+    parser.add_argument('--clip_guidance_scale', type=int, default=5000, help='Clip guidance scale. Eg. 5000')
+    parser.add_argument('--tv_scale', type=int, default=0, help='TV scale. Eg. 0')
+    parser.add_argument('--range_scale', type=int, default=150, help='Range scale. Eg. 150')
+    parser.add_argument('--sat_scale', type=int, default=0, help='Sat scale. Eg. 0')
+    parser.add_argument('--cutn_batches', type=int, default=4, help='Cutn batches. Eg. 0')
+    parser.add_argument('--skip_augs', type=str2bool, nargs='?', const=True, default=False, help="Skip augs. Options: False and True. By default is False.")
+    parser.add_argument('--init_image', type=str, default=None, help='Init Image.')
+    parser.add_argument('--init_scale', type=int, default=1000, help='Init Scale. Eg. 1000')
+    parser.add_argument('--skip_steps', type=int, default=10, help='Skip steps. Eg. 10. Make sure you set skip_steps to ~50 percent of your steps if you want to use an init image.')
 
     # Experiment parameters
     parser.add_argument('--experiment_name', type=str, default="", help='A name for the experiment')
@@ -116,6 +130,8 @@ def main():
     os.makedirs(args.images_out_path, exist_ok=True)
     os.makedirs(args.model_path, exist_ok=True)
     os.makedirs(args.pretrained_path, exist_ok=True)
+    args.batch_folder_path = os.path.join(args.images_out_path, args.batch_name)
+    os.makedirs(args.batch_folder_path, exist_ok=True)
 
     # get models
     get_models(args)
@@ -130,10 +146,10 @@ def main():
             print('Disabling CUDNN for A100 gpu', file=sys.stderr)
         torch.backends.cudnn.enabled = False
 
+    # Download models
     download_models(args)
 
-
-
+    # Model config
     model_config = model_and_diffusion_defaults()
     if args.diffusion_model == '512x512_diffusion_uncond_finetune_008100':
         model_config.update({
@@ -192,7 +208,27 @@ def main():
     normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
     lpips_model = lpips.LPIPS(net='vgg').to(args.device)
         
+    #Get corrected sizes
+    args.side_x = (args.width_height[0]//64)*64;
+    args.side_y = (args.width_height[1]//64)*64;
+    if args.side_x != args.width_height[0] or args.side_y != args.width_height[1]:
+        print(f'Changing output size to {args.side_x}x{args.side_y}. Dimensions must by multiples of 64.')
+
+    #Update Model Settings
+    timestep_respacing = f'ddim{args.steps}'
+    diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
+    model_config.update({
+        'timestep_respacing': timestep_respacing,
+        'diffusion_steps': diffusion_steps,
+        })
+
     print('end')
+    print(args.side_x)
+
+
+
+
+
 
 
     # # Multiprocessing
