@@ -424,6 +424,10 @@ def main():
         args.rotation_3d_y = 0
         args.rotation_3d_z = 0
 
+    print('End')
+    print(args.angle)
+    print(args.rotation_3d_x)
+    print(args.zoom)
 
 
     # # Multiprocessing
