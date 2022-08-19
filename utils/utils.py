@@ -499,7 +499,7 @@ def do_run(model, diffusion, secondary_model, args, args_exp):
   seed = args.seed
   print(range(args.start_frame, args.max_frames))
   normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
-  lpips_model = lpips.LPIPS(net='vgg').to(args.device)
+  lpips_model = lpips.LPIPS(net='vgg').to(args_exp.device)
 
   if (args.animation_mode == "3D") and (args.midas_weight > 0.0):
       midas_model, midas_transform, midas_net_w, midas_net_h, midas_resize_mode, midas_normalization = init_midas_depth_model(args.midas_depth_model)
