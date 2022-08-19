@@ -1,43 +1,18 @@
 import argparse
 import os
 from utils.utils import str2bool, get_models, download_models, do_run
-from datetime import datetime
 import torch
-from dataclasses import dataclass
-from functools import partial
-import cv2
-import pandas as pd
-import timm
 import gc
-import shutil
-from PIL import Image, ImageOps
-import requests
 from glob import glob
 from types import SimpleNamespace
-from torch import nn
-from torch.nn import functional as F
-import torchvision.transforms as T
-import torchvision.transforms.functional as TF
 from datetime import datetime
-import matplotlib.pyplot as plt
 from functools import partial
-from numpy import asarray
-from einops import rearrange, repeat
-from tqdm.notebook import tqdm
-import torchvision
-import time
-import numpy as np
-from omegaconf import OmegaConf
-from midas_function import init_midas_depth_model
 import warnings
 import sys
 import pathlib
 import subprocess
-import disco_xform_utils as dxf
 import math
 import random
-import io
-import pytorch3d_lite.py3d_tools as p3dT
 
 # Add 3rd-party methods
 sys.path.append('./AdaBins')
@@ -47,10 +22,8 @@ sys.path.append('./MiDaS')
 sys.path.append('./pytorch3d-lite') 
 sys.path.append('./ResizeRight') 
 
-from ResizeRight.resize_right import resize
 from guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults
-from AdaBins.infer import InferenceHelper
-from secondary_diffusion_model import SecondaryDiffusionImageNet, SecondaryDiffusionImageNet2
+from secondary_diffusion_model import SecondaryDiffusionImageNet2
 from clip import clip
 from animation_utils import parse_key_frames, split_prompts, get_inbetweens
 MAX_ADABINS_AREA = 500000
