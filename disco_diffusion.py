@@ -309,11 +309,11 @@ def main():
         print(f'Changing output size to {args.side_x}x{args.side_y}. Dimensions must by multiples of 64.')
 
     #Update Model Settings
-    timestep_respacing = f'ddim{args.steps}'
-    diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
+    args.timestep_respacing = f'ddim{args.steps}'
+    args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
     model_config.update({
-        'timestep_respacing': timestep_respacing,
-        'diffusion_steps': diffusion_steps,
+        'timestep_respacing': args.timestep_respacing,
+        'diffusion_steps': args.diffusion_steps,
         })
     
     # Animation Mode
@@ -502,11 +502,11 @@ def main():
 
     # Do the run!!
     #Update Model Settings
-    timestep_respacing = f'ddim{args.steps}'
-    diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
+    args.timestep_respacing = f'ddim{args.steps}'
+    args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
     model_config.update({
-        'timestep_respacing': timestep_respacing,
-        'diffusion_steps': diffusion_steps,
+        'timestep_respacing': args.timestep_respacing,
+        'diffusion_steps': args.diffusion_steps,
     })
     args.batch_size = 1 
 
