@@ -736,7 +736,7 @@ def do_run(model, diffusion, secondary_model, args, args_exp):
                     except:
                         input_resolution=224
 
-                    cuts = MakeCutoutsDango(input_resolution,
+                    cuts = MakeCutoutsDango(args=args, cut_size=input_resolution,
                             Overview= args.cut_overview[1000-t_int], 
                             InnerCrop = args.cut_innercut[1000-t_int], IC_Size_Pow=args.cut_ic_pow, IC_Grey_P = args.cut_icgray_p[1000-t_int]
                             )
