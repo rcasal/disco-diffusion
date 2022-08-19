@@ -645,11 +645,11 @@ def main():
         'rand_mag': args.rand_mag,
     }
 
-    args = SimpleNamespace(**args_m)
+    args_m = SimpleNamespace(**args_m)
 
     print('Prepping model...')
     model, diffusion = create_model_and_diffusion(**model_config)
-    model.load_state_dict(torch.load(f'{args.model_path}/{args.diffusion_model}.pt', map_location='cpu'))
+    model.load_state_dict(torch.load(f'{args.model_path}/{args_m.diffusion_model}.pt', map_location='cpu'))
     model.requires_grad_(False).eval().to(args.device)
     for name, param in model.named_parameters():
         if 'qkv' in name or 'norm' in name or 'proj' in name:
