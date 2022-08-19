@@ -474,13 +474,13 @@ def main():
     # Saving
     if type(args.intermediate_saves) is not list:
         if args.intermediate_saves:
-            steps_per_checkpoint = math.floor((args.steps - args.skip_steps - 1) // (args.intermediate_saves+1))
-            steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
-            print(f'Will save every {steps_per_checkpoint} steps')
+            args.steps_per_checkpoint = math.floor((args.steps - args.skip_steps - 1) // (args.intermediate_saves+1))
+            args.steps_per_checkpoint = args.steps_per_checkpoint if args.steps_per_checkpoint > 0 else 1
+            print(f'Will save every {args.steps_per_checkpoint} steps')
         else:
-            steps_per_checkpoint = args.steps+10
+            args.steps_per_checkpoint = args.steps+10
     else:
-        steps_per_checkpoint = None
+        args.steps_per_checkpoint = None
 
     if args.intermediate_saves and args.intermediates_in_subfolder is True:
         args.partialFolder = f'{args.batchFolder}/partials'
@@ -631,7 +631,7 @@ def main():
         'cut_icgray_p': eval(args.cut_icgray_p),
         'intermediate_saves': args.intermediate_saves,
         'intermediates_in_subfolder': args.intermediates_in_subfolder,
-        'steps_per_checkpoint': steps_per_checkpoint,
+        'steps_per_checkpoint': args.steps_per_checkpoint,
         'perlin_init': args.perlin_init,
         'perlin_mode': args.perlin_mode,
         'set_seed': args.set_seed,
