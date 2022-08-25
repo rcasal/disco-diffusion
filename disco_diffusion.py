@@ -1,6 +1,6 @@
 import argparse
 import os
-from utils.utils import str2bool, download_models, do_run, create_dirs, setting_device, correct_size
+from utils.utils import str2bool, download_models, do_run, create_dirs, setting_device, correct_sizes, create_list_clip_models, set_intermediate_saves
 import torch
 import gc
 from glob import glob
@@ -81,47 +81,6 @@ def parse_args():
     parser.add_argument('--init_scale', type=int, default=1000, help='Init Scale. Eg. 1000')
     parser.add_argument('--skip_steps', type=int, default=10, help='Skip steps. Eg. 10. Make sure you set skip_steps to ~50 percent of your steps if you want to use an init image.')
 
-    # Animation Settings
-    parser.add_argument('--animation_mode', type=str, default='None', help='Init animation_mode. Options are None, 2D, 3D, Video Input. For animation, you probably want to turn `cutn_batches` to 1 to make it quicker.')
-    # Video Input settings
-    parser.add_argument('--video_name', type=str, default="training.mp4", help='Name for video. It will be saved on root_path.')
-    parser.add_argument('--extract_nth_frame', type=int, default=2, help='Extract nth frame.')
-    parser.add_argument('--video_init_seed_continuity', type=str2bool, nargs='?', const=True, default=False, help="Video init seed continuity. Options: False and True. By default is False.")
-
-    #2d Animation Settings
-    parser.add_argument('--key_frames', type=str2bool, nargs='?', const=True, default=False, help="Key frames. Options: False and True. By default is False.")
-    parser.add_argument('--max_frames', type=int, default=10000, help='Max frames.')
-    parser.add_argument('--interp_spline', type=str, default="Linear", help='Interp spline. Options: Linear,Quadratic,Cubic. It is recommended not to change.')
-    parser.add_argument('--angle', type=str, default="0:(1)", help='Angle. All rotations are provided in degrees')
-    parser.add_argument('--zoom', type=str, default="0: (1), 10: (1.05)", help='Zoom is a multiplier of dimensions, 1 is no zoom.')
-    parser.add_argument('--translation_x', type=str, default="0: (0)", help='Translation x.')
-    parser.add_argument('--translation_y', type=str, default="0: (0)", help='Translation y.')
-    parser.add_argument('--translation_z', type=str, default="0: (10.0)", help='Translation z.')
-    parser.add_argument('--rotation_3d_x', type=str, default="0: (0)", help='Rotation 3D x.')
-    parser.add_argument('--rotation_3d_y', type=str, default="0: (0)", help='Rotation 3D y.')
-    parser.add_argument('--rotation_3d_z', type=str, default="0: (0)", help='Rotation 3D z.')
-    parser.add_argument('--midas_depth_model', type=str, default="dpt_large", help='Midas depth model.') # Why is twice?
-    parser.add_argument('--midas_weight', type=float, default=0.3, help='Midas weight.') 
-    parser.add_argument('--near_plane', type=int, default=200, help='Near Plane.') 
-    parser.add_argument('--far_plane', type=int, default=10000, help='Far Plane.')
-    parser.add_argument('--fov', type=int, default=40, help='Fov.') 
-    parser.add_argument('--padding_mode', type=str, default='border', help='Padding mode.') 
-    parser.add_argument('--sampling_mode', type=str, default='bicubic', help='Sampling mode.') 
-
-    # Turbo Mode (3D anim only)
-    parser.add_argument('--turbo_mode', type=str2bool, nargs='?', const=True, default=False, help="Turbo mode. Options: False and True. By default is False. (Starts after frame 10,) skips diffusion steps and just uses depth map to warp images for skipped frames. Speeds up rendering by 2x-4x, and may improve image coherence between frames. frame_blend_mode smooths abrupt texture changes across 2 frames. For different settings tuned for Turbo Mode, refer to the original Disco-Turbo Github: https://github.com/zippy731/disco-diffusion-turbo")
-    parser.add_argument('--turbo_steps', type=str, default='3', help='Turbo steps. Options: 2,3,4,5,6.') 
-    parser.add_argument('--turbo_preroll', type=int, default=10, help='Turbo preroll.') 
-
-    # Coherency Settings 
-    parser.add_argument('--frames_scale', type=int, default=1500, help='Frames scale. Frame_scale tries to guide the new frame to looking like the old one. A good default is 1500.') 
-    parser.add_argument('--frames_skip_steps', type=str, default='60%', help="Frame skip steps` will blur the previous frame - higher values will flicker less but struggle to add enough new detail to zoom into. Options: '40%', '50%', '60%', '70%', '80%'") 
-
-    # VR Mode
-    parser.add_argument('--vr_mode', type=str2bool, nargs='?', const=True, default=False, help="VR mode. Options: False and True. By default is False. Enables stereo rendering of left/right eye views (supporting Turbo) which use a different (fish-eye) camera projection matrix. Note the images you're prompting will work better if they have some inherent wide-angle aspect The generated images will need to be combined into left/right videos. These can then be stitched into the VR180 format. Google made the VR180 Creator tool but subsequently stopped supporting it. It's available for download in a few places including https://www.patrickgrunwald.de/vr180-creator-download The tool is not only good for stitching (videos and photos) but also for adding the correct metadata into existing videos, which is needed for services like YouTube to identify the format correctly. Watching YouTube VR videos isn't necessarily the easiest depending on your headset. For instance Oculus have a dedicated media studio and store which makes the files easier to access on a Quest https://creator.oculus.com/manage/mediastudio/. The command to get ffmpeg to concat your frames for each eye is in the form: ffmpeg -framerate 15 -i frame_%4d_l.png l.mp4 (repeat for r).")
-    parser.add_argument('--vr_eye_angle', type=float, default=0.5, help='Vr eye angle` is the y-axis rotation of the eyes towards the center.') 
-    parser.add_argument('--vr_ipd', type=float, default=5.0, help='Interpupillary distance (between the eyes).') 
-
     # Extra Settings
     # Saving
     parser.add_argument('--intermediate_saves', type=int, default=100, help='Intermediate saves. Intermediate steps will save a copy at your specified intervals. You can either format it as a single integer or a list of specific steps. A value of 2 will save a copy at 33% and 66%. 0 will save none. A value of [5, 9, 34, 45] will save at steps 5, 9, 34, and 45. (Make sure to include the brackets') 
@@ -188,191 +147,16 @@ def main():
         secondary_model.eval().requires_grad_(False).to(args.device)
 
     # Create list of clips models
-    args.clip_models = []
-    if args.ViTB32 is True: args.clip_models.append(clip.load('ViT-B/32', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-    if args.ViTB16 is True: args.clip_models.append(clip.load('ViT-B/16', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
-    if args.ViTL14 is True: args.clip_models.append(clip.load('ViT-L/14', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
-    if args.RN50 is True: args.clip_models.append(clip.load('RN50', jit=False)[0].eval().requires_grad_(False).to(args.device))
-    if args.RN50x4 is True: args.clip_models.append(clip.load('RN50x4', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-    if args.RN50x16 is True: args.clip_models.append(clip.load('RN50x16', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-    if args.RN50x64 is True: args.clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-    if args.RN101 is True: args.clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+    args.clip_models = create_list_clip_models(args)
         
     #Get corrected sizes
-    args.side_x, args.side_y = correct_size(args.width, args.heigth)
+    args.side_x, args.side_y = correct_sizes(args.width, args.heigth)
     
     # Model config
-    init_model_configs(args)
+    args.model_config = init_model_configs(args)
     
-    # Animation Mode
-    if args.animation_mode == "Video Input":
-        os.makedirs(os.path.join(args.root_path, args.videoFramesFolder), exist_ok=True)
-        print(f"Exporting Video Frames (1 every {args.extract_nth_frame})...")
-        try:
-            for f in pathlib.Path(f'{args.videoFramesFolder}').glob('*.jpg'):
-                f.unlink()
-        except:
-            print('')
-        vf = f'select=not(mod(n\,{args.extract_nth_frame}))'
-        subprocess.run(['ffmpeg', '-i', f'{args.video_init_path}', '-vf', f'{vf}', '-vsync', 'vfr', '-q:v', '2', '-loglevel', 'error', '-stats', f'{args.videoFramesFolder}/%04d.jpg'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        #!ffmpeg -i {video_init_path} -vf {vf} -vsync vfr -q:v 2 -loglevel error -stats {videoFramesFolder}/%04d.jpg
-
-    # Video input 
-    if args.animation_mode == "Video Input":
-        args.max_frames = len(glob(f'{args.videoFramesFolder}/*.jpg'))
-
-    # Turbo mode. Insist turbo be used only w 3d anim.
-    if args.turbo_mode and args.animation_mode != '3D':
-        print('=====')
-        print('Turbo mode only available with 3D animations. Disabling Turbo.')
-        print('=====')
-        args.turbo_mode = False
-
-    # VR Mode. Insist VR be used only w 3d anim.
-    if args.vr_mode and args.animation_mode != '3D':
-        print('=====')
-        print('VR mode only available with 3D animations. Disabling VR.')
-        print('=====')
-        args.vr_mode = False
-
-    # Animation code
-    if args.key_frames:
-        try:
-            args.angle_series = get_inbetweens(parse_key_frames(args.angle), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `angle` correctly for key frames.\n"
-                "Attempting to interpret `angle` as "
-                f'"0: ({args.angle})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.angle = f"0: ({args.angle})"
-            args.angle_series = get_inbetweens(parse_key_frames(args.angle))
-
-        try:
-            args.zoom_series = get_inbetweens(parse_key_frames(args.zoom), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `zoom` correctly for key frames.\n"
-                "Attempting to interpret `zoom` as "
-                f'"0: ({args.zoom})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.zoom = f"0: ({args.zoom})"
-            args.zoom_series = get_inbetweens(parse_key_frames(args.zoom), args)
-
-        try:
-            args.translation_x_series = get_inbetweens(parse_key_frames(args.translation_x), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `translation_x` correctly for key frames.\n"
-                "Attempting to interpret `translation_x` as "
-                f'"0: ({args.translation_x})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.translation_x = f"0: ({args.translation_x})"
-            args.translation_x_series = get_inbetweens(parse_key_frames(args.translation_x), args)
-
-        try:
-            args.translation_y_series = get_inbetweens(parse_key_frames(args.translation_y), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `translation_y` correctly for key frames.\n"
-                "Attempting to interpret `translation_y` as "
-                f'"0: ({args.translation_y})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.translation_y = f"0: ({args.translation_y})"
-            args.translation_y_series = get_inbetweens(parse_key_frames(args.translation_y), args)
-
-        try:
-            args.translation_z_series = get_inbetweens(parse_key_frames(args.translation_z), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `translation_z` correctly for key frames.\n"
-                "Attempting to interpret `translation_z` as "
-                f'"0: ({args.translation_z})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.translation_z = f"0: ({args.translation_z})"
-            args.translation_z_series = get_inbetweens(parse_key_frames(args.translation_z), args)
-
-        try:
-            args.rotation_3d_x_series = get_inbetweens(parse_key_frames(args.rotation_3d_x), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `rotation_3d_x` correctly for key frames.\n"
-                "Attempting to interpret `rotation_3d_x` as "
-                f'"0: ({args.rotation_3d_x})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.rotation_3d_x = f"0: ({args.rotation_3d_x})"
-            args.rotation_3d_x_series = get_inbetweens(parse_key_frames(args.rotation_3d_x), args)
-
-        try:
-            args.rotation_3d_y_series = get_inbetweens(parse_key_frames(args.rotation_3d_y), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `rotation_3d_y` correctly for key frames.\n"
-                "Attempting to interpret `rotation_3d_y` as "
-                f'"0: ({args.rotation_3d_y})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.rotation_3d_y = f"0: ({args.rotation_3d_y})"
-            args.rotation_3d_y_series = get_inbetweens(parse_key_frames(args.rotation_3d_y), args)
-
-        try:
-            args.rotation_3d_z_series = get_inbetweens(parse_key_frames(args.rotation_3d_z), args)
-        except RuntimeError as e:
-            print(
-                "WARNING: You have selected to use key frames, but you have not "
-                "formatted `rotation_3d_z` correctly for key frames.\n"
-                "Attempting to interpret `rotation_3d_z` as "
-                f'"0: ({args.rotation_3d_z})"\n'
-                "Please read the instructions to find out how to use key frames "
-                "correctly.\n"
-            )
-            args.rotation_3d_z = f"0: ({args.rotation_3d_z})"
-            args.rotation_3d_z_series = get_inbetweens(parse_key_frames(args.rotation_3d_z), args)
-
-    else:
-        args.angle = 0
-        args.zoom = 0
-        args.translation_x = 0
-        args.translation_y = 0
-        args.translation_z = 0
-        args.rotation_3d_x = 0
-        args.rotation_3d_y = 0
-        args.rotation_3d_z = 0
-
     # Saving
-    if type(args.intermediate_saves) is not list:
-        if args.intermediate_saves:
-            args.steps_per_checkpoint = math.floor((args.steps - args.skip_steps - 1) // (args.intermediate_saves+1))
-            args.steps_per_checkpoint = args.steps_per_checkpoint if args.steps_per_checkpoint > 0 else 1
-            print(f'Will save every {args.steps_per_checkpoint} steps')
-        else:
-            args.steps_per_checkpoint = args.steps+10
-    else:
-        args.steps_per_checkpoint = None
-
-    if args.intermediate_saves and args.intermediates_in_subfolder is True:
-        args.partialFolder = f'{args.batchFolder}/partials'
-        os.makedirs(args.partialFolder, exist_ok=True)
+    set_intermediate_saves(args)
 
     # Prompt
     args.text_prompts = {

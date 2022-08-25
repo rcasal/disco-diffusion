@@ -84,7 +84,6 @@ def create_dirs(args):
   args.video_init_path = os.path.join(args.root_path, args.video_name)
 
 
-
 def download_models(args,fallback=False):
   # MiDaS
   if not os.path.exists(f'{args.model_path}/dpt_large-midas-2f21e586.pt'):
@@ -206,6 +205,19 @@ def download_models(args,fallback=False):
         download_models(args,True)
 
 
+def create_list_clip_models(args):
+  args.clip_models = []
+  if args.ViTB32 is True: args.clip_models.append(clip.load('ViT-B/32', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.ViTB16 is True: args.clip_models.append(clip.load('ViT-B/16', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
+  if args.ViTL14 is True: args.clip_models.append(clip.load('ViT-L/14', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
+  if args.RN50 is True: args.clip_models.append(clip.load('RN50', jit=False)[0].eval().requires_grad_(False).to(args.device))
+  if args.RN50x4 is True: args.clip_models.append(clip.load('RN50x4', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.RN50x16 is True: args.clip_models.append(clip.load('RN50x16', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.RN50x64 is True: args.clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.RN101 is True: args.clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+
+  return args.clips_models
+
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -225,6 +237,22 @@ def correct_sizes(width, heigth):
       print(f'Changing output size to {side_x}x{side_y}. Dimensions must by multiples of 64.')
   
   return side_x, side_y
+
+
+def set_intermediate_saves(args):
+  if type(args.intermediate_saves) is not list:
+      if args.intermediate_saves:
+          args.steps_per_checkpoint = math.floor((args.steps - args.skip_steps - 1) // (args.intermediate_saves+1))
+          args.steps_per_checkpoint = args.steps_per_checkpoint if args.steps_per_checkpoint > 0 else 1
+          print(f'Will save every {args.steps_per_checkpoint} steps')
+      else:
+          args.steps_per_checkpoint = args.steps+10
+  else:
+      args.steps_per_checkpoint = None
+
+  if args.intermediate_saves and args.intermediates_in_subfolder is True:
+      args.partialFolder = f'{args.batchFolder}/partials'
+      os.makedirs(args.partialFolder, exist_ok=True)
 
 # https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 

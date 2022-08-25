@@ -54,6 +54,8 @@ def init_model_configs(args):
         'timestep_respacing': args.timestep_respacing,
         'diffusion_steps': args.diffusion_steps,
         })
+    
+    return args.model_config
 
 
 def diffusion_defaults():
