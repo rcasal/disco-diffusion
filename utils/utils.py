@@ -81,8 +81,6 @@ def create_dirs(args):
   args.pretrained_path = os.path.join(args.root_path, args.pretrained_path)
   os.makedirs(args.pretrained_path, exist_ok=True)
 
-  args.video_init_path = os.path.join(args.root_path, args.video_name)
-
 
 def download_models(args,fallback=False):
   # MiDaS

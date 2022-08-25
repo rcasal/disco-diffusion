@@ -171,7 +171,6 @@ def main():
             args.image_prompts,
         }
 
-
     # Do the run!!
     #Update Model Settings
     args.timestep_respacing = f'ddim{args.steps}'
