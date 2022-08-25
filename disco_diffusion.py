@@ -1,6 +1,6 @@
 import argparse
 import os
-from utils.utils import str2bool, get_models, download_models, do_run, create_dirs, setting_device
+from utils.utils import str2bool, download_models, do_run, create_dirs, setting_device
 import torch
 import gc
 from glob import glob
@@ -175,12 +175,9 @@ def main():
     # Directories config
     create_dirs(args)
 
-    # get models
-    get_models(args)
-
-    # Import devices
+    # Import device
     setting_device(args)
-
+    
     # Download models
     download_models(args)
 

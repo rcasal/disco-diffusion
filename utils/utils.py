@@ -60,7 +60,7 @@ def setting_device(args):
       if torch.cuda.get_device_capability(args.device) == (8,0): ## A100 fix thanks to Emad
           print('Disabling CUDNN for A100 gpu', file=sys.stderr)
       torch.backends.cudnn.enabled = False
-      
+
 
 def create_dirs(args):
   args.root_path = os.path.join(os.getcwd(),args.experiment_name) if args.root_path == 'pwd' else os.path.join(args.root_path,args.experiment_name) 
@@ -84,22 +84,22 @@ def create_dirs(args):
   args.video_init_path = os.path.join(args.root_path, args.video_name)
 
 
-def get_models(args):
-    # MiDaS
-    if not os.path.exists(f'{args.model_path}/dpt_large-midas-2f21e586.pt'):
-        wget("https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", args.model_path)
-    else: 
-        print("'{args.model_path}/dpt_large-midas-2f21e586.pt' already exists.")
-
-    # AdaBins
-    if not os.path.exists('pretrained/AdaBins_nyu.pt'):
-      os.makedirs('pretrained', exist_ok=True)
-      wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", 'pretrained')
-    else: 
-        print("'pretrained/AdaBins_nyu.pt' already exists.")
-    
 
 def download_models(args,fallback=False):
+  # MiDaS
+  if not os.path.exists(f'{args.model_path}/dpt_large-midas-2f21e586.pt'):
+      wget("https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", args.model_path)
+  else: 
+      print("'{args.model_path}/dpt_large-midas-2f21e586.pt' already exists.")
+
+  # AdaBins
+  if not os.path.exists('pretrained/AdaBins_nyu.pt'):
+    os.makedirs('pretrained', exist_ok=True)
+    wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", 'pretrained')
+  else: 
+      print("'pretrained/AdaBins_nyu.pt' already exists.")
+
+
   model_256_downloaded = False
   model_512_downloaded = False
   model_secondary_downloaded = False
