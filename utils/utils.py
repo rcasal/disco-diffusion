@@ -217,6 +217,15 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
+def correct_sizes(width, heigth):
+  width_height = [width, heigth]
+  side_x = (width//64)*64
+  side_y = (heigth//64)*64
+  if side_x != width or side_y != heigth:
+      print(f'Changing output size to {side_x}x{side_y}. Dimensions must by multiples of 64.')
+  
+  return side_x, side_y
+
 # https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 
 

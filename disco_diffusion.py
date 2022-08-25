@@ -1,6 +1,6 @@
 import argparse
 import os
-from utils.utils import str2bool, download_models, do_run, create_dirs, setting_device
+from utils.utils import str2bool, download_models, do_run, create_dirs, setting_device, correct_size
 import torch
 import gc
 from glob import glob
@@ -181,9 +181,6 @@ def main():
     # Download models
     download_models(args)
 
-    # Model config
-    init_model_configs(args)
-
     # Secondary model
     if args.use_secondary_model:
         secondary_model = SecondaryDiffusionImageNet2()
@@ -202,19 +199,10 @@ def main():
     if args.RN101 is True: args.clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
         
     #Get corrected sizes
-    args.width_height = [args.width, args.heigth]
-    args.side_x = (args.width//64)*64;
-    args.side_y = (args.heigth//64)*64;
-    if args.side_x != args.width or args.side_y != args.heigth:
-        print(f'Changing output size to {args.side_x}x{args.side_y}. Dimensions must by multiples of 64.')
-
-    #Update Model Settings
-    args.timestep_respacing = f'ddim{args.steps}'
-    args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
-    args.model_config.update({
-        'timestep_respacing': args.timestep_respacing,
-        'diffusion_steps': args.diffusion_steps,
-        })
+    args.side_x, args.side_y = correct_size(args.width, args.heigth)
+    
+    # Model config
+    init_model_configs(args)
     
     # Animation Mode
     if args.animation_mode == "Video Input":

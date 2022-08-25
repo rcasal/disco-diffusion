@@ -48,6 +48,12 @@ def init_model_configs(args):
         })
 
     args.model_default = args.model_config['image_size']
+    args.timestep_respacing = f'ddim{args.steps}'
+    args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
+    args.model_config.update({
+        'timestep_respacing': args.timestep_respacing,
+        'diffusion_steps': args.diffusion_steps,
+        })
 
 
 def diffusion_defaults():
