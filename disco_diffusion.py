@@ -1,6 +1,6 @@
 import argparse
 import os
-from utils.utils import str2bool, get_models, download_models, do_run
+from utils.utils import str2bool, get_models, download_models, do_run, create_dirs, setting_device
 import torch
 import gc
 from glob import glob
@@ -20,7 +20,7 @@ sys.path.append('./MiDaS')
 sys.path.append('./pytorch3d-lite') 
 sys.path.append('./ResizeRight') 
 
-from guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults
+from guided_diffusion.script_util import create_model_and_diffusion, init_model_configs
 from secondary_diffusion_model import SecondaryDiffusionImageNet2
 from clip import clip
 from animation_utils import parse_key_frames, split_prompts, get_inbetweens
@@ -39,6 +39,12 @@ def parse_args():
     parser.add_argument('--model_path', type=str, default="models", help='Folder name for models')
     parser.add_argument('--pretrained_path', type=str, default="pretrained", help='Folder name for pretrained')
     parser.add_argument('--videoFramesFolder', type=str, default="videoFrames", help='Folder name for videoFrames')
+
+    # Experiment parameters
+    parser.add_argument('--experiment_name', type=str, default="", help='A name for the experiment')
+
+    # Warnings parameters
+    parser.add_argument('--warnings', type=str2bool, nargs='?', const=False, default=True, help="Show warnings")
 
     # Model parameters
     parser.add_argument('--midas_model_type', type=str, default="dpt_large", help='Parameter to set MiDaS depth. Options: midas_v21_small, midas_v21, dpt_large, , dpt_hybrid_nyu')
@@ -156,21 +162,6 @@ def parse_args():
     parser.add_argument('--resume_from_frame', type=str, default="latest", help="Resume from frame.") 
     parser.add_argument('--retain_overwritten_frames', type=str2bool, nargs='?', const=True, default=True, help="Retain overwritten frames.")
 
-
-
-
-    # Experiment parameters
-    parser.add_argument('--experiment_name', type=str, default="", help='A name for the experiment')
-    parser.add_argument('--verbose', type=int, default=0, help='Display training time metrics. Yes: 1, No: 2')
-    parser.add_argument('--display_step', type=int, default=100, help='Number of step to display images.')
-    parser.add_argument('--write_logs_step', type=int, default=100, help='Number of step to display images.')
-    parser.add_argument('--resume_training', type=str2bool, nargs='?', const=True, default=False, help="Continue training allows to resume training. You'll need to add experiment name args to identify the experiment to recover.")
-
-
-    # Warnings parameters
-    parser.add_argument('--warnings', type=str2bool, nargs='?', const=False, default=True, help="Show warnings")
-
-
     return parser.parse_args()
 
 
@@ -181,86 +172,28 @@ def main():
     if args.warnings:
         warnings.filterwarnings("ignore")
 
-    # Resume training and experiment name
-    #args.experiment_name = args.experiment_name if (args.resume_training) else datetime.now().strftime("%Y_%m_%d_%H_%M") + "_" + args.experiment_name    
-    
     # Directories config
-    args.root_path = os.path.join(os.getcwd(),args.experiment_name) if args.root_path == 'pwd' else os.path.join(args.root_path,args.experiment_name) 
-    args.init_images_path = os.path.join(args.root_path, args.init_images_path)
-    args.images_out_path = os.path.join(args.root_path, args.images_out_path)
-    args.model_path = os.path.join(args.root_path, args.model_path)
-    args.pretrained_path = os.path.join(args.root_path, args.pretrained_path)
-    os.makedirs(args.init_images_path, exist_ok=True)
-    os.makedirs(args.images_out_path, exist_ok=True)
-    os.makedirs(args.model_path, exist_ok=True)
-    os.makedirs(args.pretrained_path, exist_ok=True)
-    args.batchFolder = os.path.join(args.images_out_path, args.batch_name)
-    os.makedirs(args.batchFolder, exist_ok=True)
-
-    args.video_init_path = os.path.join(args.root_path, args.video_name)
+    create_dirs(args)
 
     # get models
     get_models(args)
 
     # Import devices
-    DEVICE = torch.device('cuda:0' if (torch.cuda.is_available()) else 'cpu')
-    print('Using device:', DEVICE)
-    args.device = DEVICE # At least one of the modules expects this name..
-
-    if args.device=='cuda:0':
-        if torch.cuda.get_device_capability(DEVICE) == (8,0): ## A100 fix thanks to Emad
-            print('Disabling CUDNN for A100 gpu', file=sys.stderr)
-        torch.backends.cudnn.enabled = False
+    setting_device(args)
 
     # Download models
     download_models(args)
 
     # Model config
-    model_config = model_and_diffusion_defaults()
-    if args.diffusion_model == '512x512_diffusion_uncond_finetune_008100':
-        model_config.update({
-            'attention_resolutions': '32, 16, 8',
-            'class_cond': False,
-            'diffusion_steps': 1000, #No need to edit this, it is taken care of later.
-            'rescale_timesteps': True,
-            'timestep_respacing': 250, #No need to edit this, it is taken care of later.
-            'image_size': 512,
-            'learn_sigma': True,
-            'noise_schedule': 'linear',
-            'num_channels': 256,
-            'num_head_channels': 64,
-            'num_res_blocks': 2,
-            'resblock_updown': True,
-            'use_checkpoint': args.use_checkpoint,
-            'use_fp16': False,
-            'use_scale_shift_norm': True,
-        })
-    elif args.diffusion_model == '256x256_diffusion_uncond':
-        model_config.update({
-            'attention_resolutions': '32, 16, 8',
-            'class_cond': False,
-            'diffusion_steps': 1000, #No need to edit this, it is taken care of later.
-            'rescale_timesteps': True,
-            'timestep_respacing': 250, #No need to edit this, it is taken care of later.
-            'image_size': 256,
-            'learn_sigma': True,
-            'noise_schedule': 'linear',
-            'num_channels': 256,
-            'num_head_channels': 64,
-            'num_res_blocks': 2,
-            'resblock_updown': True,
-            'use_checkpoint': args.use_checkpoint,
-            'use_fp16': False,
-            'use_scale_shift_norm': True,
-        })
+    init_model_configs(args)
 
-    args.model_default = model_config['image_size']
-
+    # Secondary model
     if args.use_secondary_model:
         secondary_model = SecondaryDiffusionImageNet2()
         secondary_model.load_state_dict(torch.load(f'{args.model_path}/secondary_model_imagenet_2.pth', map_location='cpu'))
         secondary_model.eval().requires_grad_(False).to(args.device)
 
+    # Create list of clips models
     args.clip_models = []
     if args.ViTB32 is True: args.clip_models.append(clip.load('ViT-B/32', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
     if args.ViTB16 is True: args.clip_models.append(clip.load('ViT-B/16', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
@@ -270,7 +203,6 @@ def main():
     if args.RN50x16 is True: args.clip_models.append(clip.load('RN50x16', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
     if args.RN50x64 is True: args.clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
     if args.RN101 is True: args.clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-
         
     #Get corrected sizes
     args.width_height = [args.width, args.heigth]
@@ -282,7 +214,7 @@ def main():
     #Update Model Settings
     args.timestep_respacing = f'ddim{args.steps}'
     args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
-    model_config.update({
+    args.model_config.update({
         'timestep_respacing': args.timestep_respacing,
         'diffusion_steps': args.diffusion_steps,
         })
@@ -475,7 +407,7 @@ def main():
     #Update Model Settings
     args.timestep_respacing = f'ddim{args.steps}'
     args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
-    model_config.update({
+    args.model_config.update({
         'timestep_respacing': args.timestep_respacing,
         'diffusion_steps': args.diffusion_steps,
     })
@@ -619,13 +551,13 @@ def main():
     args_m = SimpleNamespace(**args_m)
 
     print('Prepping model...')
-    model, diffusion = create_model_and_diffusion(**model_config)
+    model, diffusion = create_model_and_diffusion(**args.model_config)
     model.load_state_dict(torch.load(f'{args.model_path}/{args.diffusion_model}.pt', map_location='cpu'))
     model.requires_grad_(False).eval().to(args.device)
     for name, param in model.named_parameters():
         if 'qkv' in name or 'norm' in name or 'proj' in name:
             param.requires_grad_()
-    if model_config['use_fp16']:
+    if args.model_config['use_fp16']:
         model.convert_to_fp16()
 
     gc.collect()

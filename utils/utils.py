@@ -36,17 +36,53 @@ def gitclone(url):
   res = subprocess.run(['git', 'clone', url], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
+
 def pipi(modulestr):
   res = subprocess.run(['pip', 'install', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
+
 
 def pipie(modulestr):
   res = subprocess.run(['git', 'install', '-e', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
+
 def wget(url, outputdir):
   res = subprocess.run(['wget', url, '-P', f'{outputdir}'], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
+
+
+def setting_device(args):
+  args.device = torch.device('cuda:0' if (torch.cuda.is_available()) else 'cpu')
+  print('Using device:', args.device)
+
+  if args.device=='cuda:0':
+      if torch.cuda.get_device_capability(args.device) == (8,0): ## A100 fix thanks to Emad
+          print('Disabling CUDNN for A100 gpu', file=sys.stderr)
+      torch.backends.cudnn.enabled = False
+      
+
+def create_dirs(args):
+  args.root_path = os.path.join(os.getcwd(),args.experiment_name) if args.root_path == 'pwd' else os.path.join(args.root_path,args.experiment_name) 
+
+  # init_images_path
+  args.init_images_path = os.path.join(args.root_path, args.init_images_path)
+  os.makedirs(args.init_images_path, exist_ok=True)
+  # images_out_path
+  args.images_out_path = os.path.join(args.root_path, args.images_out_path)
+  os.makedirs(args.images_out_path, exist_ok=True)
+  # images_out_path/batch_name
+  args.batchFolder = os.path.join(args.images_out_path, args.batch_name)
+  os.makedirs(args.batchFolder, exist_ok=True)
+  # model_path
+  args.model_path = os.path.join(args.root_path, args.model_path)
+  os.makedirs(args.model_path, exist_ok=True)
+  # pretrained_path
+  args.pretrained_path = os.path.join(args.root_path, args.pretrained_path)
+  os.makedirs(args.pretrained_path, exist_ok=True)
+
+  args.video_init_path = os.path.join(args.root_path, args.video_name)
+
 
 def get_models(args):
     # MiDaS
