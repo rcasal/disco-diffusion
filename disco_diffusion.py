@@ -152,9 +152,6 @@ def main():
     #Get corrected sizes
     args.side_x, args.side_y = correct_sizes(args.width, args.heigth)
     
-    # Model config
-    args.model_config = init_model_configs(args)
-    
     # Saving
     set_intermediate_saves(args)
 
@@ -172,13 +169,8 @@ def main():
         }
 
     # Do the run!!
-    #Update Model Settings
-    args.timestep_respacing = f'ddim{args.steps}'
-    args.diffusion_steps = (1000//args.steps)*args.steps if args.steps < 1000 else args.steps
-    args.model_config.update({
-        'timestep_respacing': args.timestep_respacing,
-        'diffusion_steps': args.diffusion_steps,
-    })
+    # Model config
+    args.model_config = init_model_configs(args)
     args.batch_size = 1 
 
     def move_files(start_num, end_num, old_folder, new_folder):
