@@ -214,7 +214,6 @@ def create_list_clip_models(args):
   if args.RN50x64 is True: args.clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
   if args.RN101 is True: args.clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
 
-  return args.clips_models
 
 def str2bool(v):
     if isinstance(v, bool):
