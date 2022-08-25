@@ -5,8 +5,6 @@ import torch
 import gc
 from glob import glob
 from types import SimpleNamespace
-from datetime import datetime
-from functools import partial
 import warnings
 import sys
 import pathlib
@@ -30,7 +28,7 @@ MAX_ADABINS_AREA = 500000
 
 
 def parse_args():
-    desc = "Pix2PixHD"
+    desc = "DiscoDiffusion"
 
     parser = argparse.ArgumentParser(description=desc)
 
