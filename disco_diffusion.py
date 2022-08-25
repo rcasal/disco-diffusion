@@ -147,7 +147,7 @@ def main():
         secondary_model.eval().requires_grad_(False).to(args.device)
 
     # Create list of clips models
-    args.clip_models = create_list_clip_models(args)
+    create_list_clip_models(args)
         
     #Get corrected sizes
     args.side_x, args.side_y = correct_sizes(args.width, args.heigth)
@@ -167,7 +167,7 @@ def main():
         args.image_prompts = {
             args.image_prompts,
         }
-
+    print('llego hasta acá')
     # Do the run!!
     # Model config
     args.model_config = init_model_configs(args)

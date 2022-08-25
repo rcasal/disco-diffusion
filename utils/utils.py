@@ -204,17 +204,17 @@ def download_models(args,fallback=False):
 
 
 def create_list_clip_models(args):
-  clip_models = []
-  if args.ViTB32 is True: clip_models.append(clip.load('ViT-B/32', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-  if args.ViTB16 is True: clip_models.append(clip.load('ViT-B/16', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
-  if args.ViTL14 is True: clip_models.append(clip.load('ViT-L/14', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
-  if args.RN50 is True: clip_models.append(clip.load('RN50', jit=False)[0].eval().requires_grad_(False).to(args.device))
-  if args.RN50x4 is True: clip_models.append(clip.load('RN50x4', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-  if args.RN50x16 is True: clip_models.append(clip.load('RN50x16', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-  if args.RN50x64 is True: clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
-  if args.RN101 is True: clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  args.clip_models = []
+  if args.ViTB32 is True: args.clip_models.append(clip.load('ViT-B/32', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.ViTB16 is True: args.clip_models.append(clip.load('ViT-B/16', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
+  if args.ViTL14 is True: args.clip_models.append(clip.load('ViT-L/14', jit=False)[0].eval().requires_grad_(False).to(args.device) ) 
+  if args.RN50 is True: args.clip_models.append(clip.load('RN50', jit=False)[0].eval().requires_grad_(False).to(args.device))
+  if args.RN50x4 is True: args.clip_models.append(clip.load('RN50x4', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.RN50x16 is True: args.clip_models.append(clip.load('RN50x16', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.RN50x64 is True: args.clip_models.append(clip.load('RN50x64', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
+  if args.RN101 is True: args.clip_models.append(clip.load('RN101', jit=False)[0].eval().requires_grad_(False).to(args.device)) 
 
-  return clips_models
+  return args.clips_models
 
 def str2bool(v):
     if isinstance(v, bool):
