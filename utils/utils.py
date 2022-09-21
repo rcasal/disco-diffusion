@@ -38,7 +38,7 @@ def gitclone(url):
 
 
 def pipi(modulestr):
-  res = subprocess.run(['pip', 'install', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
+  res = subprocess.run(['pip', 'install', modulestr, '--quiet'], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
 
@@ -48,7 +48,7 @@ def pipie(modulestr):
 
 
 def wget(url, outputdir):
-  res = subprocess.run(['wget', url, '-P', f'{outputdir}'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+  res = subprocess.run(['wget', url, '-P', f'{outputdir}', '--quiet'], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
 
