@@ -230,8 +230,8 @@ def main():
 
     args_m = {
         'batchNum': args.batchNum,
-        'prompts_series':None,#split_prompts(args.text_prompts, args) if args.text_prompts else None,
-        'image_prompts_series':None,#split_prompts(args.image_prompts, args) if args.image_prompts else None,
+        'prompts_series':split_prompts(args.text_prompts, args) if args.text_prompts else None,
+        'image_prompts_series':split_prompts(args.image_prompts, args) if args.image_prompts else None,
         'seed': args.seed,
         'display_rate':args.display_rate,
         'n_batches':1,#args.n_batches if args.animation_mode == 'None' else 1,
