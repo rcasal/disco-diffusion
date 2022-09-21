@@ -184,11 +184,11 @@ def main():
         os.makedirs(args.retainFolder, exist_ok=True)
 
 
-    args.skip_step_ratio = int(args.frames_skip_steps.rstrip("%")) / 100
-    args.calc_frames_skip_steps = math.floor(args.steps * args.skip_step_ratio)
+    # args.skip_step_ratio = int(args.frames_skip_steps.rstrip("%")) / 100
+    # args.calc_frames_skip_steps = math.floor(args.steps * args.skip_step_ratio)
 
-    if args.steps <= args.calc_frames_skip_steps:
-        sys.exit("ERROR: You can't skip more steps than your total steps")
+    # if args.steps <= args.calc_frames_skip_steps:
+    #     sys.exit("ERROR: You can't skip more steps than your total steps")
 
     if args.resume_run:
         if args.run_to_resume == 'latest':
