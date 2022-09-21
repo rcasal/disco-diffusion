@@ -179,9 +179,9 @@ def main():
             new_file = new_folder + f'/{args.batch_name}({args.batchNum})_{i:04}.png'
             os.rename(old_file, new_file)
 
-    if args.retain_overwritten_frames is True:
-        args.retainFolder = f'{args.batchFolder}/retained'
-        os.makedirs(args.retainFolder, exist_ok=True)
+    # if args.retain_overwritten_frames is True:
+    #     args.retainFolder = f'{args.batchFolder}/retained'
+    #     os.makedirs(args.retainFolder, exist_ok=True)
 
 
     # args.skip_step_ratio = int(args.frames_skip_steps.rstrip("%")) / 100
@@ -198,16 +198,17 @@ def main():
                 args.batchNum = len(glob(f"{args.batchFolder}/{args.batch_name}(*)_settings.txt"))-1
         else:
             args.batchNum = int(args.run_to_resume)
+            
         if args.resume_from_frame == 'latest':
             args.start_frame = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
-            if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
-                args.start_frame = args.start_frame - (args.start_frame % int(args.turbo_steps))
+            # if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
+            #     args.start_frame = args.start_frame - (args.start_frame % int(args.turbo_steps))
         else:
             args.start_frame = int(args.resume_from_frame)+1
-            if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
-                args.start_frame = args.start_frame - (args.start_frame % int(args.turbo_steps))
-            if args.retain_overwritten_frames is True:
-                args.existing_frames = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
+            # if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
+            #     args.start_frame = args.start_frame - (args.start_frame % int(args.turbo_steps))
+            # if args.retain_overwritten_frames is True:
+            #     args.existing_frames = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
             args.frames_to_save = args.existing_frames - args.start_frame
             print(f'Moving {args.frames_to_save} frames to the Retained folder')
             move_files(args.start_frame, args.existing_frames, args.batchFolder, args.retainFolder)
