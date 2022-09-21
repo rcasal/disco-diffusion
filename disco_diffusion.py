@@ -167,12 +167,12 @@ def main():
         args.image_prompts = {
             args.image_prompts,
         }
-    print('llego hasta acá')
+
     # Do the run!!
     # Model config
     args.model_config = init_model_configs(args)
     args.batch_size = 1 
-
+    print('llego hasta acá')
     def move_files(start_num, end_num, old_folder, new_folder):
         for i in range(start_num, end_num):
             old_file = old_folder + f'/{args.batch_name}({args.batchNum})_{i:04}.png'
