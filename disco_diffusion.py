@@ -257,7 +257,7 @@ def main():
         'extract_nth_frame': None,#args.extract_nth_frame,
         'video_init_seed_continuity': None,#args.video_init_seed_continuity,
         'key_frames': None,#args.key_frames,
-        'max_frames': None,#args.max_frames if args.animation_mode != "None" else 1,
+        'max_frames': 1,#args.max_frames if args.animation_mode != "None" else 1,
         'interp_spline': None,#args.interp_spline,
         'start_frame': args.start_frame,
         'angle': None,#args.angle,
