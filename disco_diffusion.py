@@ -198,7 +198,7 @@ def main():
                 args.batchNum = len(glob(f"{args.batchFolder}/{args.batch_name}(*)_settings.txt"))-1
         else:
             args.batchNum = int(args.run_to_resume)
-            
+
         if args.resume_from_frame == 'latest':
             args.start_frame = len(glob(args.batchFolder+f"/{args.batch_name}({args.batchNum})_*.png"))
             # if args.animation_mode != '3D' and args.turbo_mode == True and args.start_frame > args.turbo_preroll and args.start_frame % int(args.turbo_steps) != 0:
@@ -230,8 +230,8 @@ def main():
 
     args_m = {
         'batchNum': args.batchNum,
-        'prompts_series':split_prompts(args.text_prompts, args) if args.text_prompts else None,
-        'image_prompts_series':split_prompts(args.image_prompts, args) if args.image_prompts else None,
+        'prompts_series':None,#split_prompts(args.text_prompts, args) if args.text_prompts else None,
+        'image_prompts_series':None,#split_prompts(args.image_prompts, args) if args.image_prompts else None,
         'seed': args.seed,
         'display_rate':args.display_rate,
         'n_batches':args.n_batches if args.animation_mode == 'None' else 1,
