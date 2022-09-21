@@ -33,11 +33,11 @@ from ipywidgets import Output
 # from IPython.display import Image as ipyimg
 
 def gitclone(url):
-  res = subprocess.run(['git', 'clone', url], stdout=subprocess.PIPE).stdout.decode('utf-8')
+  res = subprocess.run(['git', 'clone', '--quiet', url], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
 def pipi(modulestr):
-  res = subprocess.run(['pip', 'install', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
+  res = subprocess.run(['pip', 'install', modulestr, '--quiet'], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
 def pipie(modulestr):
@@ -45,7 +45,7 @@ def pipie(modulestr):
   print(res)
 
 def wget(url, outputdir):
-  res = subprocess.run(['wget', url, '-P', f'{outputdir}'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+  res = subprocess.run(['wget', url, '-P', f'{outputdir}', '--quiet'], stdout=subprocess.PIPE).stdout.decode('utf-8')
   print(res)
 
 def get_models(args):

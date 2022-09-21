@@ -465,7 +465,7 @@ def main():
         100: [args.text_prompts_100_0, args.text_prompts_100_1],
     }
 
-    if args.image_prompts is "None":
+    if args.image_prompts == "None":
         args.image_prompts = {}
     else:
         args.image_prompts = {
