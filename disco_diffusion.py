@@ -121,6 +121,7 @@ def parse_args():
     parser.add_argument('--resume_from_frame', type=str, default="latest", help="Resume from frame.") 
     parser.add_argument('--retain_overwritten_frames', type=str2bool, nargs='?', const=True, default=True, help="Retain overwritten frames.")
 
+    parser.add_argument('--max_frames', type=int, default=10000, help='Max frames.')
     return parser.parse_args()
 
 
@@ -257,7 +258,7 @@ def main():
         'extract_nth_frame': None,#args.extract_nth_frame,
         'video_init_seed_continuity': None,#args.video_init_seed_continuity,
         'key_frames': None,#args.key_frames,
-        'max_frames': 1,#args.max_frames if args.animation_mode != "None" else 1,
+        'max_frames': args.max_frames,#args.max_frames if args.animation_mode != "None" else 1,
         'interp_spline': None,#args.interp_spline,
         'start_frame': args.start_frame,
         'angle': None,#args.angle,
