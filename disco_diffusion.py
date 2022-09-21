@@ -259,7 +259,7 @@ def main():
         'key_frames': None,#args.key_frames,
         'max_frames': None,#args.max_frames if args.animation_mode != "None" else 1,
         'interp_spline': None,#args.interp_spline,
-        'start_frame': None,#args.start_frame,
+        'start_frame': args.start_frame,
         'angle': None,#args.angle,
         'zoom': None,#args.zoom,
         'translation_x': None,#args.translation_x,
